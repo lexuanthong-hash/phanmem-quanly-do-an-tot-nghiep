@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Nội dung báo cáo",
+    "max_score": "10.00",
+    "weight": "2.00"
+  },
+  {
+    "name": "Hình thức trình bày",
+    "max_score": "10.00",
+    "weight": "1.00"
+  },
+  {
+    "name": "Sản phẩm phần mềm",
+    "max_score": "10.00",
+    "weight": "3.00"
+  },
+  {
+    "name": "Kỹ thuật sử dụng",
+    "max_score": "10.00",
+    "weight": "2.00"
+  },
+  {
+    "name": "Kỹ năng thuyết trình",
+    "max_score": "10.00",
+    "weight": "1.00"
+  },
+  {
+    "name": "Trả lời câu hỏi",
+    "max_score": "10.00",
+    "weight": "1.00"
+  },
+  {
+    "name": "Nội dung báo cáo",
+    "max_score": "10.00",
+    "weight": "2.00"
+  },
+  {
+    "name": "Hình thức trình bày",
+    "max_score": "10.00",
+    "weight": "1.00"
+  },
+  {
+    "name": "Sản phẩm phần mềm",
+    "max_score": "10.00",
+    "weight": "3.00"
+  },
+  {
+    "name": "Kỹ thuật sử dụng",
+    "max_score": "10.00",
+    "weight": "2.00"
+  },
+  {
+    "name": "Kỹ năng thuyết trình",
+    "max_score": "10.00",
+    "weight": "1.00"
+  },
+  {
+    "name": "Trả lời câu hỏi",
+    "max_score": "10.00",
+    "weight": "1.00"
+  }
+]
