@@ -10,16 +10,15 @@ const app = express();
 
 const allowedOrigins = [
     'http://localhost:5173',
-    'https://phanmem-quanly-do-an-tot-nghiep-3n2.vercel.app', // Link Vercel chính thức của bạn
-    process.env.FRONTEND_URL // Dự phòng nếu sau này cấu hình bằng biến môi trường
+    process.env.FRONTEND_URL
 ].filter(Boolean);
 
 app.use(cors({
     origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin || origin.startsWith('http://localhost') || origin.includes('vercel.app') || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            callback(new Error('Not allowed by CORS'));
+            callback(new Error('Not allowed by CORS: ' + origin));
         }
     },
     credentials: true
