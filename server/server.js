@@ -8,7 +8,22 @@ const { startDeadlineNotifier } = require('./utils/notificationService');
 
 const app = express();
 
-app.use(cors({ origin: 'http://localhost:5173', credentials: true })); // cho phép frontend gọi API
+const allowedOrigins = [
+    'http://localhost:5173',
+    'https://phanmem-quanly-do-an-tot-nghiep-3n2.vercel.app', // Link Vercel chính thức của bạn
+    process.env.FRONTEND_URL // Dự phòng nếu sau này cấu hình bằng biến môi trường
+].filter(Boolean);
+
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+})); // cho phép frontend gọi API
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // phục vụ file upload

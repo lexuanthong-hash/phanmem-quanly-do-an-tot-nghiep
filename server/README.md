@@ -160,5 +160,4 @@ sequenceDiagram
 6. **Thống kê Báo cáo (Dashboard):** 
    - Toàn bộ kết quả từ số lượng đề tài, tiến độ sinh viên, bảng điểm được trực quan hóa thành biểu đồ trên Dashboard để theo dõi nhanh hoặc xuất Excel.
 
----
-*Phát triển với ❤️ sử dụng hệ sinh thái Node.js.*
+
