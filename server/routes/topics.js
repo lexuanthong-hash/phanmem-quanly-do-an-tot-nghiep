@@ -1,3 +1,4 @@
+```
 const router = require('express').Router();
 const ctrl = require('../controllers/topicController');
 const auth = require('../middleware/auth');
