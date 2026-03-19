@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: '/api', // proxy tới http://localhost:5000/api (cấu hình trong vite.config.js)
+    // Lấy URL thực tế trên Vercel, hoặc dùng '/api' để chạy proxy ở màn local
+    baseURL: import.meta.env.VITE_API_BASE_URL || '/api', 
     headers: { 'Content-Type': 'application/json' }
 });
 
