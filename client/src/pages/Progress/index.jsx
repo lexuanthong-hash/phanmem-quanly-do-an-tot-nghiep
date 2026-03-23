@@ -3,7 +3,7 @@ import api from '../../api/axios';
 import Header from '../../components/Header';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
-import { FiCheckSquare, FiUpload, FiMessageSquare } from 'react-icons/fi';
+import { FiCheckSquare, FiUpload, FiMessageSquare, FiSearch } from 'react-icons/fi';
 
 const Progress = () => {
     const { isStudent, isAdmin, isLecturer } = useAuth();
@@ -15,8 +15,9 @@ const Progress = () => {
     const [submitForm, setSubmitForm] = useState({ milestone_id: '', content: '' });
     const [file, setFile] = useState(null);
     const [reviewForm, setReviewForm] = useState({ status: 'reviewed', feedback: '' });
-    const [myAssignment, setMyAssignment] = useState(null); // null = chưa load, false = chưa có, object = có rồi
+    const [myAssignment, setMyAssignment] = useState(null);
     const [wishCount, setWishCount] = useState(0);
+    const [progressSearch, setProgressSearch] = useState('');  // tìm kiếm phía client cho GV/Admin
 
     useEffect(() => {
         fetchProgress();
@@ -109,37 +110,62 @@ const Progress = () => {
                     {isStudent && myAssignment && <button className="btn btn-primary" onClick={() => setShowSubmit(true)}><FiUpload /> Nộp tiến độ</button>}
                 </div>
 
+                {/* Thanh tìm kiếm cho Giảng viên / Admin */}
+                {!isStudent && (
+                    <div className="filter-bar">
+                        <div className="search-input">
+                            <FiSearch />
+                            <input
+                                className="form-input"
+                                placeholder="Tìm tên sinh viên, MSSV"
+                                value={progressSearch}
+                                onChange={e => setProgressSearch(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                )}
+
                 {/* Sinh viên chưa có assignment: hiện thông báo */}
                 {isStudent && myAssignment === false ? renderStudentNotAssigned() : (
-                    loading ? <div className="loading"><div className="spinner"></div></div> : (
-                        <div className="table-container">
-                            <table>
-                                <thead><tr>{!isStudent && <><th>MSSV</th><th>Sinh viên</th></>}<th>Đề tài</th><th>Mốc</th><th>Hạn nộp</th><th>Ngày nộp</th><th>Báo cáo / File</th><th>Trạng thái</th><th>Nhận xét</th>{isLecturer && <th>Thao tác</th>}</tr></thead>
-                                <tbody>
-                                    {reports.length === 0 ? <tr><td colSpan="10"><div className="empty-state"><h3>Chưa có tiến độ</h3></div></td></tr> : reports.map(r => (
-                                        <tr key={r.id}>
-                                            {!isStudent && <><td>{r.student_code}</td><td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{r.student_name}</td></>}
-                                            <td style={{ maxWidth: '200px' }}>{r.topic_title}</td>
-                                            <td>{r.milestone_title}</td>
-                                            <td style={{ fontSize: '12px' }}>{r.milestone_deadline ? new Date(r.milestone_deadline).toLocaleDateString('vi-VN') : '-'}</td>
-                                            <td style={{ fontSize: '12px' }}>{new Date(r.submitted_at).toLocaleDateString('vi-VN')}</td>
-                                            <td style={{ maxWidth: '200px', fontSize: '12px' }}>
-                                                {r.content && <div style={{ marginBottom: 4 }}>{r.content}</div>}
-                                                {r.file_url ? (
-                                                    <a href={`http://localhost:5000${r.file_url}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Tải file báo cáo</a>
-                                                ) : <span style={{ color: 'var(--text-muted)' }}>Không có file</span>}
-                                            </td>
-                                            <td>{statusBadge(r.status)}</td>
-                                            <td style={{ maxWidth: '150px', fontSize: '12px' }}>{r.feedback || '-'}</td>
-                                            {isLecturer && (
-                                                <td><button className="btn btn-sm btn-primary" onClick={() => { setShowReview(r.id); setReviewForm({ status: r.status === 'submitted' ? 'reviewed' : r.status, feedback: r.feedback || '' }); }}><FiMessageSquare /> {r.status === 'submitted' ? 'Đánh giá' : 'Sửa đánh giá'}</button></td>
-                                            )}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )
+                    loading ? <div className="loading"><div className="spinner"></div></div> : (() => {
+                        // Lọc báo cáo phía client cho GV/Admin theo tên SV, MSSV, mốc tiến độ
+                        const displayReports = (!isStudent && progressSearch)
+                            ? reports.filter(r =>
+                                r.student_name?.toLowerCase().includes(progressSearch.toLowerCase()) ||
+                                r.student_code?.toLowerCase().includes(progressSearch.toLowerCase()) ||
+                                r.milestone_title?.toLowerCase().includes(progressSearch.toLowerCase())
+                            )
+                            : reports;
+                        return (
+                            <div className="table-container">
+                                <table>
+                                    <thead><tr>{!isStudent && <><th>MSSV</th><th>Sinh viên</th></>}<th>Đề tài</th><th>Mốc</th><th>Hạn nộp</th><th>Ngày nộp</th><th>Báo cáo / File</th><th>Trạng thái</th><th>Nhận xét</th>{isLecturer && <th>Thao tác</th>}</tr></thead>
+                                    <tbody>
+                                        {displayReports.length === 0 ? <tr><td colSpan="10"><div className="empty-state"><h3>{progressSearch ? 'Không tìm thấy kết quả' : 'Chưa có tiến độ'}</h3></div></td></tr> : displayReports.map(r => (
+                                            <tr key={r.id}>
+                                                {!isStudent && <><td>{r.student_code}</td><td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{r.student_name}</td></>}
+                                                <td style={{ maxWidth: '200px' }}>{r.topic_title}</td>
+                                                <td>{r.milestone_title}</td>
+                                                <td style={{ fontSize: '12px' }}>{r.milestone_deadline ? new Date(r.milestone_deadline).toLocaleDateString('vi-VN') : '-'}</td>
+                                                <td style={{ fontSize: '12px' }}>{new Date(r.submitted_at).toLocaleDateString('vi-VN')}</td>
+                                                <td style={{ maxWidth: '200px', fontSize: '12px' }}>
+                                                    {r.content && <div style={{ marginBottom: 4 }}>{r.content}</div>}
+                                                    {r.file_url ? (
+                                                        <a href={`http://localhost:5000${r.file_url}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Tải file báo cáo</a>
+                                                    ) : <span style={{ color: 'var(--text-muted)' }}>Không có file</span>}
+                                                </td>
+                                                <td>{statusBadge(r.status)}</td>
+                                                <td style={{ maxWidth: '150px', fontSize: '12px' }}>{r.feedback || '-'}</td>
+                                                {isLecturer && (
+                                                    <td><button className="btn btn-sm btn-primary" onClick={() => { setShowReview(r.id); setReviewForm({ status: r.status === 'submitted' ? 'reviewed' : r.status, feedback: r.feedback || '' }); }}><FiMessageSquare /> {r.status === 'submitted' ? 'Đánh giá' : 'Sửa đánh giá'}</button></td>
+                                                )}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        );
+                    })()
                 )}
             </div>
 

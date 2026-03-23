@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 
-// Lấy danh sách đề tài (phân trang + filter)
+// [ADMIN / GIẢNG VIÊN] Lấy toàn bộ danh sách đề tài (phân trang + lọc)
+// Lọc được theo: status, semester, category, lecturer_id, từ khóa tìm kiếm
 exports.getTopics = async (req, res) => {
     try {
         const { page = 1, limit = 10, status, semester, lecturer_id, search, category } = req.query;
@@ -79,7 +80,8 @@ exports.getTopics = async (req, res) => {
     }
 };
 
-// Lấy tất cả đề tài cho SV xem tổng quan (không bị hủy)
+// [SINH VIÊN] Lấy tất cả đề tài không bị hủy (để SV xem tổng quan tất cả đề tài)
+// Khác getOpenTopics: không điều kiện về trạng thái hoặc số chỗ
 exports.getAvailableTopics = async (req, res) => {
     try {
         const [topics] = await pool.execute(`
@@ -101,7 +103,8 @@ exports.getAvailableTopics = async (req, res) => {
     }
 };
 
-// Lấy đề tài còn chỗ cho SV đăng ký nguyện vọng
+// [GIẢNG VIÊN / SINH VIÊN] Lấy đề tài đã duyệt và còn chỗ để đăng ký
+// Là nơi SV nhìn thấy danh sánh nguyện vọng: kèm tên SV đã đăng ký và đang chờ duyệt
 exports.getOpenTopics = async (req, res) => {
     try {
         const [topics] = await pool.execute(`
@@ -135,7 +138,8 @@ exports.getOpenTopics = async (req, res) => {
     }
 };
 
-// Lấy đề tài theo ID
+// [TẤT CẢ ROLE] Lấy chi tiết 1 đề tài theo ID
+// Kèm thông tin: SV được phân công và các mốc tiến độ của đề tài
 exports.getTopicById = async (req, res) => {
     try {
         const [topics] = await pool.execute(`
@@ -177,7 +181,9 @@ exports.getTopicById = async (req, res) => {
     }
 };
 
-// Tạo đề tài mới
+// [ADMIN / GIẢNG VIÊN] Tạo đề tài mới
+// GV tạo: tự động gán lecturer_id = chính mình
+// Admin tạo: có thể chỉ định lecturer_id bất kỳ
 exports.createTopic = async (req, res) => {
     try {
         const { title, description, max_students, semester, category, requirements } = req.body;
@@ -207,7 +213,7 @@ exports.createTopic = async (req, res) => {
     }
 };
 
-// Cập nhật đề tài
+// [ADMIN / GIẢNG VIÊN] Cập nhật thông tin đề tài (tiêu đề, mô tả, số SV, trạng thái...)
 exports.updateTopic = async (req, res) => {
     try {
         const { title, description, max_students, status, semester, category, requirements } = req.body;
@@ -229,7 +235,8 @@ exports.updateTopic = async (req, res) => {
     }
 };
 
-// Duyệt đề tài (Controller xử lý Logic & thao tác CSDL)
+// [ADMIN] Duyệt đề tài: chuyển trạng thái từ 'draft' → 'approved'
+// Chỉ đề tài đã duyệt mới xuất hiện cho SV đăng ký nguyện vọng
 exports.approveTopic = async (req, res) => {
     try {
         const topicId = req.params.id; // Lấy ID của đề tài từ URL param
@@ -251,7 +258,8 @@ exports.approveTopic = async (req, res) => {
     }
 };
 
-// Xóa đề tài
+// [ADMIN / GIẢNG VIÊN] Xóa mềm đề tài (chuyển sang 'cancelled', không xóa khỏi DB)
+// Không cho phép xóa nếu đề tài đã có sinh viên được phân công
 exports.deleteTopic = async (req, res) => {
     try {
         const topicId = req.params.id;

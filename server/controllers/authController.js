@@ -13,8 +13,12 @@ exports.login = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Vui lòng nhập tên đăng nhập và mật khẩu.' });
         }
 
-        const [users] = await pool.execute('SELECT * FROM users WHERE username = ? AND is_active = 1', [username]);
-        if (users.length === 0) {
+        // Lấy user theo username (MySQL có thể vẫn không phân biệt hoa/thường)
+        const [users] = await pool.execute('SELECT * FROM users WHERE BINARY username = ? AND is_active = 1', [username]);
+
+        // Kiểm tra thêm trong JavaScript: username phải khớp 100% (phân biệt hoa/thường)
+        // Ví dụ: tài khoản là 'admin' mà nhập 'Admin' → bị chặn ngay ở đây
+        if (users.length === 0 || users[0].username !== username) {
             return res.status(401).json({ success: false, message: 'Tên đăng nhập hoặc mật khẩu không đúng.' });
         }
 
