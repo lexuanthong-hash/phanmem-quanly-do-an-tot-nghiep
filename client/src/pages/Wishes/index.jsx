@@ -3,7 +3,7 @@ import api from '../../api/axios';
 import Header from '../../components/Header';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
-import { FiHeart, FiCheck, FiX, FiTrash2 } from 'react-icons/fi';
+import { FiHeart, FiCheck, FiX, FiTrash2, FiSearch } from 'react-icons/fi';
 
 const Wishes = () => {
     const { isStudent, isAdmin, isLecturer } = useAuth();
@@ -16,6 +16,7 @@ const Wishes = () => {
     const [rejectReason, setRejectReason] = useState('');
     const [deleteMode, setDeleteMode] = useState(false);
     const [selectedWishIds, setSelectedWishIds] = useState(() => new Set());
+    const [wishSearch, setWishSearch] = useState(''); // State tìm kiếm cho GV/Admin
 
     useEffect(() => { fetchWishes(); if (isStudent) fetchTopics(); }, []);
 
@@ -146,64 +147,88 @@ const Wishes = () => {
                     )}
                 </div>
 
-                {loading ? <div className="loading"><div className="spinner"></div></div> : (
-                    <div className="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    {isStudent && deleteMode && <th style={{ width: 44 }}></th>}
-                                    {!isStudent && <><th>MSSV</th><th>Sinh viên</th></>}
-                                    <th>Đề tài</th><th>Ưu tiên</th><th>Ghi chú</th><th>Trạng thái</th>
-                                    {!isStudent && <th>Thao tác</th>}
-                                    {isStudent && <th>Thao tác</th>}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {wishes.length === 0 ? <tr><td colSpan="7"><div className="empty-state"><h3>Chưa có nguyện vọng</h3></div></td></tr> : wishes.map(w => (
-                                    <tr key={w.id}>
-                                        {isStudent && deleteMode && (
-                                            <td>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedWishIds.has(String(w.id))}
-                                                disabled={!(w.status === 'pending' || w.status === 'rejected')}
-                                                    onChange={() => toggleWishSelected(w.id)}
-                                                />
-                                            </td>
-                                        )}
-                                        {!isStudent && <><td>{w.student_code}</td><td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{w.student_name}</td></>}
-                                        <td style={{ maxWidth: '250px' }}>
-                                            {w.topic_title}
-                                            <div style={{ fontSize: '12px', marginTop: '4px' }}>
-                                                <span style={{ color: w.current_students >= w.max_students ? 'var(--danger)' : 'var(--success)' }}>
-                                                    (Đã đăng ký: {w.current_students}/{w.max_students} SV)
-                                                </span>
-                                                {w.assigned_students && <div style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>SV đang làm: {w.assigned_students}</div>}
-                                                {w.wishing_students && <div style={{ color: 'var(--warning)', marginTop: '2px' }}>SV đang chờ: {w.wishing_students}</div>}
-                                            </div>
-                                        </td>
-                                        <td><span className="badge badge-primary">NV{w.priority}</span></td>
-                                        <td style={{ maxWidth: '150px', fontSize: '12px' }}>{w.note || '-'}</td>
-                                        <td>{statusBadge(w.status)}</td>
-                                        {isLecturer && (
-                                            <td>
-                                                {w.status === 'pending' && (
-                                                    <div className="btn-group">
-                                                        <button className="btn btn-sm btn-success" onClick={() => handleApprove(w.id)}><FiCheck /> Duyệt</button>
-                                                        <button className="btn btn-sm btn-danger" onClick={() => { setRejectId(w.id); }}><FiX /> Từ chối</button>
-                                                    </div>
-                                                )}
-                                            </td>
-                                        )}
-                                        {isStudent && (
-                                            <td>{!deleteMode && w.status === 'pending' && <button className="btn btn-sm btn-danger" onClick={() => handleDelete(w.id)}><FiTrash2 /></button>}</td>
-                                        )}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                {/* Thanh tìm kiếm cho Giảng viên / Admin */}
+                {!isStudent && (
+                    <div className="filter-bar">
+                        <div className="search-input">
+                            <FiSearch />
+                            <input
+                                className="form-input"
+                                placeholder="Tìm tên Sinh Viên , MSSV "
+                                value={wishSearch}
+                                onChange={e => setWishSearch(e.target.value)}
+                            />
+                        </div>
                     </div>
                 )}
+
+                {loading ? <div className="loading"><div className="spinner"></div></div> : (() => {
+                    const displayWishes = (!isStudent && wishSearch)
+                        ? wishes.filter(w =>
+                            w.student_name?.toLowerCase().includes(wishSearch.toLowerCase()) ||
+                            w.student_code?.toLowerCase().includes(wishSearch.toLowerCase()) ||
+                            w.topic_title?.toLowerCase().includes(wishSearch.toLowerCase())
+                        )
+                        : wishes;
+                    return (
+                        <div className="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        {isStudent && deleteMode && <th style={{ width: 44 }}></th>}
+                                        {!isStudent && <><th>MSSV</th><th>Sinh viên</th></>}
+                                        <th>Đề tài</th><th>Ưu tiên</th><th>Ghi chú</th><th>Trạng thái</th>
+                                        {!isStudent && <th>Thao tác</th>}
+                                        {isStudent && <th>Thao tác</th>}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {displayWishes.length === 0 ? <tr><td colSpan="7"><div className="empty-state"><h3>{wishSearch ? 'Không tìm thấy kết quả' : 'Chưa có nguyện vọng'}</h3></div></td></tr> : displayWishes.map(w => (
+                                        <tr key={w.id}>
+                                            {isStudent && deleteMode && (
+                                                <td>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedWishIds.has(String(w.id))}
+                                                        disabled={!(w.status === 'pending' || w.status === 'rejected')}
+                                                        onChange={() => toggleWishSelected(w.id)}
+                                                    />
+                                                </td>
+                                            )}
+                                            {!isStudent && <><td>{w.student_code}</td><td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{w.student_name}</td></>}
+                                            <td style={{ maxWidth: '250px' }}>
+                                                {w.topic_title}
+                                                <div style={{ fontSize: '12px', marginTop: '4px' }}>
+                                                    <span style={{ color: w.current_students >= w.max_students ? 'var(--danger)' : 'var(--success)' }}>
+                                                        (Đã đăng ký: {w.current_students}/{w.max_students} SV)
+                                                    </span>
+                                                    {w.assigned_students && <div style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>SV đang làm: {w.assigned_students}</div>}
+                                                    {w.wishing_students && <div style={{ color: 'var(--warning)', marginTop: '2px' }}>SV đang chờ: {w.wishing_students}</div>}
+                                                </div>
+                                            </td>
+                                            <td><span className="badge badge-primary">NV{w.priority}</span></td>
+                                            <td style={{ maxWidth: '150px', fontSize: '12px' }}>{w.note || '-'}</td>
+                                            <td>{statusBadge(w.status)}</td>
+                                            {isLecturer && (
+                                                <td>
+                                                    {w.status === 'pending' && (
+                                                        <div className="btn-group">
+                                                            <button className="btn btn-sm btn-success" onClick={() => handleApprove(w.id)}><FiCheck /> Duyệt</button>
+                                                            <button className="btn btn-sm btn-danger" onClick={() => { setRejectId(w.id); }}><FiX /> Từ chối</button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            )}
+                                            {isStudent && (
+                                                <td>{!deleteMode && w.status === 'pending' && <button className="btn btn-sm btn-danger" onClick={() => handleDelete(w.id)}><FiTrash2 /></button>}</td>
+                                            )}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    );
+                })()}
             </div>
 
             {showModal && (
