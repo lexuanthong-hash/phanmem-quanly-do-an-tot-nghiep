@@ -14,6 +14,8 @@ const Topics = () => {
     const [editing, setEditing] = useState(null);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const [studentSearch, setStudentSearch] = useState('');  // tìm kiếm phía client cho sinh viên
+    const [studentCategoryFilter, setStudentCategoryFilter] = useState(''); // lọc theo lĩnh vực cho SV
     const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
     const [form, setForm] = useState({ title: '', description: '', max_students: 1, semester: '2024-2025/HK2', category: '', requirements: '', status: 'draft' });
 
@@ -28,6 +30,7 @@ const Topics = () => {
 
             let res;
             if (isStudent) {
+                // Sinh viên gọi API lấy tất cả đề tài available, tìm kiếm sẽ được lọc phía client
                 res = await api.get('/topics/available');
                 setTopics(res.data.data);
             } else {
@@ -101,6 +104,7 @@ const Topics = () => {
                     {(isAdmin || isLecturer) && <button className="btn btn-primary" onClick={() => { setEditing(null); setForm({ title: '', description: '', max_students: 1, semester: '2024-2025/HK2', category: '', requirements: '', status: 'draft' }); setShowModal(true); }}><FiPlus /> Thêm đề tài</button>}
                 </div>
 
+                {/* Thanh tìm kiếm cho Admin / Giảng viên */}
                 {!isStudent && (
                     <div className="filter-bar">
                         <div className="search-input"><FiSearch /><input className="form-input" placeholder="Tìm kiếm đề tài..." value={search} onChange={e => { setSearch(e.target.value); setPagination(p => ({ ...p, page: 1 })); }} /></div>
@@ -111,12 +115,47 @@ const Topics = () => {
                     </div>
                 )}
 
-                {loading ? <div className="loading"><div className="spinner"></div></div> : (
+                {/* Thanh tìm kiếm riêng cho Sinh viên — lọc phía client */}
+                {isStudent && (
+                    <div className="filter-bar">
+                        <div className="search-input">
+                            <FiSearch />
+                            <input
+                                className="form-input"
+                                placeholder="Tìm theo tên đề tài hoặc giảng viên..."
+                                value={studentSearch}
+                                onChange={e => setStudentSearch(e.target.value)}
+                            />
+                        </div>
+                        <select className="form-select" value={studentCategoryFilter} onChange={e => setStudentCategoryFilter(e.target.value)}>
+                            <option value="">Tất cả lĩnh vực</option>
+                            <option value="Web">Web</option>
+                            <option value="Mobile">Mobile</option>
+                            <option value="AI">AI</option>
+                            <option value="IoT">IoT</option>
+                            <option value="Game">Game</option>
+                            <option value="Khác">Khác</option>
+                        </select>
+                    </div>
+                )}
+
+                {loading ? <div className="loading"><div className="spinner"></div></div> : (() => {
+                    // Lọc danh sách đề tài phía client cho sinh viên
+                    const displayTopics = isStudent
+                        ? topics.filter(t => {
+                            const matchText = !studentSearch ||
+                                t.title?.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                                t.lecturer_name?.toLowerCase().includes(studentSearch.toLowerCase());
+                            const matchCat = !studentCategoryFilter || t.category === studentCategoryFilter;
+                            return matchText && matchCat;
+                          })
+                        : topics;
+                    return (
                     <div className="table-container">
                         <table>
                             <thead><tr><th>STT</th><th>Tên đề tài</th><th>GV hướng dẫn</th><th>SV tối đa</th><th>Lĩnh vực</th><th>Học kỳ</th><th>Trạng thái</th>{(isAdmin || isLecturer) && <th>Thao tác</th>}</tr></thead>
                             <tbody>
-                                {topics.length === 0 ? <tr><td colSpan="8"><div className="empty-state"><h3>Chưa có đề tài</h3></div></td></tr> : topics.map((t, i) => (
+                                {displayTopics.length === 0 ? <tr><td colSpan="8"><div className="empty-state"><h3>{studentSearch || studentCategoryFilter ? 'Không tìm thấy đề tài phù hợp' : 'Chưa có đề tài'}</h3></div></td></tr> : displayTopics.map((t, i) => (
                                     <tr key={t.id}>
                                         <td>{i + 1}</td>
                                         <td style={{ fontWeight: 600, color: 'var(--text-primary)', maxWidth: '280px' }}>{t.title}</td>
@@ -140,7 +179,8 @@ const Topics = () => {
                             </tbody>
                         </table>
                     </div>
-                )}
+                    );
+                })()}
 
                 {!isStudent && pagination.totalPages > 1 && (
                     <div className="pagination">

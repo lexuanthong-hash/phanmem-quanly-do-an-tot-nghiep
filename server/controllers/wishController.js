@@ -1,5 +1,8 @@
 const pool = require('../config/db');
 
+// [SINH VIÊN] Đăng ký nguyện vọng đề tài
+// Kiểm tra: SV chưa có đề tài, chưa đăng ký đề tài này, đề tài còn chỗ, tối đa 3 NV
+// Sau khi đăng ký → gửi thông báo cho giảng viên hướng dẫn
 exports.createWish = async (req, res) => {
     try {
         const { topic_id, priority, note } = req.body;
@@ -37,6 +40,9 @@ exports.createWish = async (req, res) => {
     }
 };
 
+// [TẤT CẢ ROLE] Lấy danh sách nguyện vọng
+// Sinh viên: chỉ thấy nguyện vọng của chính mình
+// GV/Admin: thấy tất cả, có thể lọc theo ?topic_id hoặc ?status
 exports.getWishes = async (req, res) => {
     try {
         const { status, topic_id } = req.query;
@@ -81,6 +87,8 @@ exports.getWishes = async (req, res) => {
     }
 };
 
+// [GIẢNG VIÊN] Duyệt chấp nhận nguyện vọng của sinh viên
+// Tự động: tạo phân công đề tài, từ chối các NV khác của SV, cập nhật trạng thái đề tài → 'assigned'
 exports.approveWish = async (req, res) => {
     try {
         const wishId = req.params.id;
@@ -112,6 +120,8 @@ exports.approveWish = async (req, res) => {
     }
 };
 
+// [GIẢNG VIÊN] Từ chối nguyện vọng của sinh viên (có thể ghi lý do)
+// Gửi thông báo kèm lý do từ chối đến sinh viên
 exports.rejectWish = async (req, res) => {
     try {
         const wishId = req.params.id;
@@ -129,6 +139,8 @@ exports.rejectWish = async (req, res) => {
     }
 };
 
+// [SINH VIÊN] Hủy đăng ký nguyện vọng
+// Chỉ hủy được khi còn 'pending' hoặc 'rejected', không hủy được khi đã 'approved'
 exports.deleteWish = async (req, res) => {
     try {
         const [wishes] = await pool.execute('SELECT * FROM wish_registrations WHERE id = ? AND student_id = ?', [req.params.id, req.user.id]);

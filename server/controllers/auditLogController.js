@@ -1,14 +1,10 @@
-/**
- * ============================================
- * AUDIT LOG CONTROLLER - Nhật ký hệ thống (Admin only)
- * ============================================
- * - getLogs(): Xem lịch sử hành động trong hệ thống
- *   Hỗ trợ lọc theo: action, entity_type, user_id, date range
- *   Phân trang mặc định 20 records/trang
- */
-
 const pool = require('../config/db');
 
+
+// [ADMIN ONLY] Lấy nhật ký hành động của toàn hệ thống
+// Ghi nhận: ai làm gì, lúc nào, IP nào, giá trị trước/sau khi thay đổi
+// Hỗ trợ lọc theo: action, loại bảng (entity_type), user_id, khoảng ngày
+// Phân trang mặc định 20 bản ghi/trang
 exports.getLogs = async (req, res) => {
     try {
         const { page = 1, limit = 20, action, entity_type, user_id, date_from, date_to } = req.query;

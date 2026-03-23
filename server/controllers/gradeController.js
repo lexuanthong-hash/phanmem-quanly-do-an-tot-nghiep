@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 
+// [TẤT CẢ ROLE] Lấy danh sách các tiêu chí chấm điểm (rubric) đang hoạt động
 exports.getCriteria = async (req, res) => {
     try {
         const [criteria] = await pool.execute('SELECT * FROM rubric_criteria WHERE is_active = 1 ORDER BY order_index');
@@ -9,6 +10,8 @@ exports.getCriteria = async (req, res) => {
     }
 };
 
+// [ADMIN] Tạo tiêu chí chấm điểm mới
+// Mỗi tiêu chí có: tên, điểm tối đa, trọng số (weight), loại (report/product/presentation/defense)
 exports.createCriteria = async (req, res) => {
     try {
         const { name, description, max_score, weight, category, order_index } = req.body;
@@ -21,6 +24,10 @@ exports.createCriteria = async (req, res) => {
     }
 };
 
+// [GIẢNG VIÊN] Chấm điểm sinh viên theo từng tiêu chí rubric
+// Lưu nhiều tiêu chí một lúc (mảng grades[])
+// ON DUPLICATE KEY UPDATE: nếu đã chấm rồi thì cập nhật lại
+// Tự động tính điểm tổng kết theo công thức: (score/max × weight) / tổng_trọng_số × 10
 exports.gradeAssignment = async (req, res) => {
     try {
         const { assignment_id, grades } = req.body;
@@ -69,6 +76,9 @@ exports.gradeAssignment = async (req, res) => {
     }
 };
 
+// [TẤT CẢ ROLE] Lấy bảng điểm
+// Sinh viên: chỉ xem điểm của chính mình, phải có final_score mới thấy
+// GV/Admin: xem điểm của tất cả sinh viên theo assignment_id
 exports.getGrades = async (req, res) => {
     try {
         const { assignment_id } = req.query;
@@ -112,6 +122,9 @@ exports.getGrades = async (req, res) => {
     }
 };
 
+// [TẤT CẢ ROLE] Lấy danh sách phân công đề tài (để biết SV nào đang làm đề tài nào)
+// Sinh viên: chỉ thấy phân công của chính mình
+// GV/Admin: thấy tất cả
 exports.getAssignments = async (req, res) => {
     try {
         let query = `SELECT ta.*, t.title as topic_title, t.semester, u.full_name as student_name, u.student_code

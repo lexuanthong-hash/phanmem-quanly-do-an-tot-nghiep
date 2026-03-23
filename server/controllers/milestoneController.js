@@ -1,17 +1,8 @@
-/**
- * ============================================
- * MILESTONE CONTROLLER - Mốc Tiến độ
- * ============================================
- * - getMilestones():    DS mốc (lọc theo topic, sắp xếp theo order_index)
- * - createMilestone():  Tạo mốc (topic_id = null → mốc chung cho tất cả)
- * - updateMilestone():  Cập nhật mốc
- * - deleteMilestone():  Xóa mốc
- *   Khi tạo mốc mới → tự động gửi thông báo cho SV liên quan
- */
-
 const pool = require('../config/db');
 
-// Lấy danh sách milestones
+
+// [TẤT CẢ ROLE] Lấy danh sách mốc tiến độ
+// Nếu truyền ?topic_id=X thì lấy mốc của đề tài đó + mốc chung (topic_id IS NULL)
 exports.getMilestones = async (req, res) => {
     try {
         const { topic_id } = req.query;
@@ -42,7 +33,9 @@ exports.getMilestones = async (req, res) => {
     }
 };
 
-// Tạo milestone
+// [ADMIN / GIẢNG VIÊN] Tạo mốc tiến độ mới
+// topic_id = null → mốc chung áp dụng cho tất cả đề tài
+// Sau khi tạo → tự động gửi thông báo deadline đến sinh viên liên quan
 exports.createMilestone = async (req, res) => {
     try {
         const { topic_id, title, description, deadline, order_index } = req.body;
@@ -87,7 +80,8 @@ exports.createMilestone = async (req, res) => {
     }
 };
 
-// Cập nhật milestone
+// [ADMIN / GIẢNG VIÊN] Chỉnh sửa mốc tiến độ
+// Có thể đổi tiêu đề, mô tả, deadline, thứ tự hiển thị
 exports.updateMilestone = async (req, res) => {
     try {
         const { title, description, deadline, order_index } = req.body;
@@ -104,7 +98,7 @@ exports.updateMilestone = async (req, res) => {
     }
 };
 
-// Xóa milestone
+// [ADMIN / GIẢNG VIÊN] Xóa mốc tiến độ theo ID
 exports.deleteMilestone = async (req, res) => {
     try {
         await pool.execute('DELETE FROM milestones WHERE id = ?', [req.params.id]);

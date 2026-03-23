@@ -1,16 +1,10 @@
-/**
- * ============================================
- * PROGRESS CONTROLLER - Nộp & Đánh giá Tiến độ
- * ============================================
- * - submitProgress():    SV nộp báo cáo tiến độ (kèm file đính kèm)
- * - getProgress():       Xem DS tiến độ (SV thấy của mình, GV thấy SV mình hướng dẫn)
- * - reviewProgress():    GV đánh giá: reviewed / revision_needed + feedback
- * - getStudentProgress(): Xem tiến độ tổng hợp của 1 SV
- */
-
 const pool = require('../config/db');
 
-// SV nộp tiến độ (kèm file upload)
+
+// [SINH VIÊN] Nộp báo cáo tiến độ theo mốc
+// Cho phép đính kèm file (.docx/.pdf) qua multer
+// Nếu đã nộp trước đó → cập nhật lại (không tạo bản mới)
+// Sau khi nộp → gửi thông báo đến giảng viên hướng dẫn
 exports.submitProgress = async (req, res) => {
     try {
         const { milestone_id, content } = req.body;
@@ -42,6 +36,10 @@ exports.submitProgress = async (req, res) => {
     }
 };
 
+// [TẤT CẢ ROLE] Lấy danh sách báo cáo tiến độ
+// Sinh viên: chỉ thấy báo cáo của chính mình
+// Giảng viên: thấy tất cả (hoặc lọc đề tài mình nếu ?mine=1)
+// Admin: thấy tất cả
 exports.getProgress = async (req, res) => {
     try {
         const { assignment_id, topic_id, mine } = req.query;
@@ -62,6 +60,9 @@ exports.getProgress = async (req, res) => {
     }
 };
 
+// [GIẢNG VIÊN] Đánh giá báo cáo tiến độ của sinh viên
+// status: 'reviewed' (đạt) hoặc 'revision_needed' (cần chỉnh sửa)
+// Sau khi đánh giá → gửi thông báo kết quả đến sinh viên
 exports.reviewProgress = async (req, res) => {
     try {
         const { status, feedback } = req.body;
@@ -79,6 +80,9 @@ exports.reviewProgress = async (req, res) => {
     }
 };
 
+// [ADMIN / GIẢNG VIÊN] Xem tiến độ tổng hợp của 1 sinh viên cụ thể
+// Trả về: thông tin đề tài + danh sách mốc + trạng thái nộp từng mốc
+// Gắn isSubmitted và isOverdue để frontend hiển thị màu sắc cảnh báo
 exports.getStudentProgress = async (req, res) => {
     try {
         const [assignment] = await pool.execute("SELECT ta.*, t.title as topic_title, t.id as topic_id, u.full_name as student_name, u.student_code FROM topic_assignments ta LEFT JOIN topics t ON ta.topic_id = t.id LEFT JOIN users u ON ta.student_id = u.id WHERE ta.student_id = ? AND ta.status = 'active'", [req.params.studentId]);

@@ -2,6 +2,10 @@ const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// [PUBLIC] Đăng nhập hệ thống
+// Kiểm tra username + password, tạo JWT token nếu hợp lệ
+// rememberMe=true → token tồn tại 30 ngày, false → 1 ngày
+// Ghi audit_log mỗi lần đăng nhập thành công
 exports.login = async (req, res) => {
     try {
         const { username, password, rememberMe } = req.body;
@@ -53,6 +57,8 @@ exports.login = async (req, res) => {
     }
 };
 
+// [TẤT CẢ ROLE] Lấy thông tin cá nhân của người dùng đang đăng nhập
+// req.user được middleware auth.js gắn vào sau khi xác thực JWT
 exports.getProfile = async (req, res) => {
     try {
         const [users] = await pool.execute(
@@ -68,6 +74,9 @@ exports.getProfile = async (req, res) => {
     }
 };
 
+// [TẤT CẢ ROLE] Đổi mật khẩu của chính mình
+// Phải nhập đúng mật khẩu hiện tại trước, mật khẩu mới ≥ 6 ký tự
+// Dùng bcrypt hash mật khẩu mới trước khi lưu vào DB
 exports.changePassword = async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;

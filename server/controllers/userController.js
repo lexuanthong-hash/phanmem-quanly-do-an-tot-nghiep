@@ -1,19 +1,11 @@
-/**
- * ============================================
- * USER CONTROLLER - Quản lý Tài khoản (Admin only)
- * ============================================
- * - getUsers():      DS users (phân trang, lọc theo role, tìm kiếm)
- * - getUserById():   Chi tiết user
- * - createUser():    Tạo mới (hash password bằng bcrypt)
- * - updateUser():    Cập nhật thông tin
- * - resetPassword(): Reset password cho user
- * - deleteUser():    Soft delete (đánh dấu is_active = 0)
- */
-
 const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 
-// Lấy danh sách users (phân trang + filter)
+
+// [TẤT CẢ ROLE] Lấy danh sách người dùng (phân trang + lọc)
+// Admin: thấy tất cả kể cả admin khác
+// GV/SV: chỉ thấy student và lecturer, không thấy admin
+// Lọc được theo: role, tìm kiếm tên/username/email/mã SV
 exports.getUsers = async (req, res) => {
     try {
         let { page = 1, limit = 10, role, search, department } = req.query;
@@ -91,7 +83,7 @@ exports.getUsers = async (req, res) => {
     }
 };
 
-// Lấy user theo ID
+// [TẤT CẢ ROLE] Lấy thông tin chi tiết 1 người dùng theo ID
 exports.getUserById = async (req, res) => {
     try {
         const [users] = await pool.execute(
@@ -110,7 +102,9 @@ exports.getUserById = async (req, res) => {
     }
 };
 
-// Tạo user mới
+// [ADMIN] Tạo tài khoản người dùng mới
+// Hash password bằng bcrypt (salt=10) trước khi lưu
+// Báo lỗi 409 nếu username hoặc email đã tồn tại
 exports.createUser = async (req, res) => {
     try {
         const { username, password, full_name, email, role, student_code, lecturer_code, department, phone } = req.body;
@@ -149,7 +143,7 @@ exports.createUser = async (req, res) => {
     }
 };
 
-// Cập nhật user
+// [ADMIN] Cập nhật thông tin người dùng (tên, email, role, mã SV/GV, khoa)
 exports.updateUser = async (req, res) => {
     try {
         const { full_name, email, role, student_code, lecturer_code, department, phone, is_active } = req.body;
@@ -171,7 +165,8 @@ exports.updateUser = async (req, res) => {
     }
 };
 
-// Reset password
+// [ADMIN] Reset mật khẩu cho bất kỳ người dùng
+// Không cần biết mật khẩu cũ, hash mật khẩu mới rồi cập nhật
 exports.resetPassword = async (req, res) => {
     try {
         const { newPassword } = req.body;
@@ -202,7 +197,8 @@ exports.resetPassword = async (req, res) => {
     }
 };
 
-// Xóa user
+// [ADMIN] Vô hiệu hóa tài khoản (soft delete: đặt is_active = 0, không xóa thật)
+// Không cho phép admin tự xóa chính mình
 exports.deleteUser = async (req, res) => {
     try {
         const userId = req.params.id;

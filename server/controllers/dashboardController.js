@@ -1,16 +1,10 @@
-/**
- * ============================================
- * DASHBOARD CONTROLLER - Thống kê & Xuất báo cáo
- * ============================================
- * - getStats():      Thống kê tổng quan (overview, biểu đồ, top SV)
- * - exportReport():  Xuất file Excel (bảng điểm hoặc danh sách đề tài)
- *   Sử dụng thư viện ExcelJS để tạo file .xlsx
- */
-
 const pool = require('../config/db');
 const ExcelJS = require('exceljs');
 
-// Thống kê Dashboard
+
+// [TẤT CẢ ROLE] Lấy số liệu thống kê tổng hợp cho Dashboard
+// Admin/GV: thấy đầy đủ (tổng SV, đề tài, điểm, nguyện vọng...)
+// Sinh viên: thấy thông tin cá nhân (đề tài đang làm, điểm số của mình)
 exports.getStats = async (req, res) => {
     try {
         const [totalUsers] = await pool.execute('SELECT COUNT(*) as count FROM users');
@@ -91,7 +85,10 @@ exports.getStats = async (req, res) => {
     }
 };
 
-// Xuất báo cáo Excel
+// [ADMIN] Xuất báo cáo ra file Excel (.xlsx)
+// ?type=grades → xuất bảng điểm toàn bộ sinh viên
+// ?type=topics (mặc định) → xuất danh sách đề tài
+// Dùng thư viện ExcelJS để tạo file, style header màu xanh
 exports.exportReport = async (req, res) => {
     try {
         const { type } = req.query;
