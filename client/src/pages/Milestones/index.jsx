@@ -11,6 +11,7 @@ const Milestones = () => {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState(null);
+    const [formScope, setFormScope] = useState('all'); // 'all' hoặc 'specific'
     const [form, setForm] = useState({ title: '', description: '', deadline: '', order_index: 0, topic_id: '' });
     const [topics, setTopics] = useState([]);
 
@@ -35,6 +36,7 @@ const Milestones = () => {
 
     const handleEdit = (m) => {
         setForm({ title: m.title, description: m.description || '', deadline: m.deadline?.slice(0, 16) || '', order_index: m.order_index, topic_id: m.topic_id || '' });
+        setFormScope(m.topic_id ? 'specific' : 'all');
         setEditing(m.id); setShowModal(true);
     };
 
@@ -51,7 +53,7 @@ const Milestones = () => {
             <div className="page-content animate-fade">
                 <div className="page-header">
                     <div><h1><FiTarget style={{ verticalAlign: 'middle' }} /> Mốc tiến độ</h1><p>Quản lý các mốc thời gian nộp tiến độ đồ án</p></div>
-                    <button className="btn btn-primary" onClick={() => { setEditing(null); setForm({ title: '', description: '', deadline: '', order_index: 0, topic_id: '' }); setShowModal(true); }}><FiPlus /> Thêm mốc</button>
+                    <button className="btn btn-primary" onClick={() => { setEditing(null); setFormScope('all'); setForm({ title: '', description: '', deadline: '', order_index: 0, topic_id: '' }); setShowModal(true); }}><FiPlus /> Thêm mốc</button>
                 </div>
 
                 {loading ? <div className="loading"><div className="spinner"></div></div> : (
@@ -94,12 +96,38 @@ const Milestones = () => {
                                     <div className="form-group"><label className="form-label">Hạn nộp *</label><input className="form-input" type="datetime-local" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} required /></div>
                                     <div className="form-group"><label className="form-label">Thứ tự</label><input className="form-input" type="number" value={form.order_index} onChange={e => setForm({ ...form, order_index: parseInt(e.target.value) })} /></div>
                                 </div>
-                                <div className="form-group"><label className="form-label">Đề tài (để trống = mốc chung)</label>
-                                    <select className="form-select" value={form.topic_id} onChange={e => setForm({ ...form, topic_id: e.target.value })}>
-                                        <option value="">Mốc chung cho tất cả</option>
-                                        {topics.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-                                    </select>
+                                <div className="form-group"><label className="form-label" style={{ fontWeight: 600 }}>Phạm vi áp dụng</label>
+                                    <div style={{ display: 'flex', gap: '20px', marginTop: '8px' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                            <input
+                                                type="radio"
+                                                name="scope"
+                                                checked={formScope === 'all'}
+                                                onChange={() => { setFormScope('all'); setForm({ ...form, topic_id: '' }); }}
+                                            />
+                                            Giao Cho Toàn Bộ sinh viên
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                            <input
+                                                type="radio"
+                                                name="scope"
+                                                checked={formScope === 'specific'}
+                                                onChange={() => { setFormScope('specific'); setForm({ ...form, topic_id: topics.length > 0 ? topics[0].id : '' }); }}
+                                            />
+                                            Chỉ Giao Cho Một Đề Tài Cụ Thể
+                                        </label>
+                                    </div>
                                 </div>
+
+                                {formScope === 'specific' && (
+                                    <div className="form-group" style={{ marginTop: '16px' }}>
+                                        <label className="form-label" style={{ fontWeight: 600 }}>Chọn Đề tài *</label>
+                                        <select className="form-select" value={form.topic_id} onChange={e => setForm({ ...form, topic_id: e.target.value })} required>
+                                            <option value="" disabled>-- Vui lòng chọn đề tài --</option>
+                                            {topics.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+                                        </select>
+                                    </div>
+                                )}
                             </div>
                             <div className="modal-footer"><button type="button" className="btn btn-outline" onClick={() => setShowModal(false)}>Hủy</button><button type="submit" className="btn btn-primary">{editing ? 'Cập nhật' : 'Tạo mốc'}</button></div>
                         </form>
