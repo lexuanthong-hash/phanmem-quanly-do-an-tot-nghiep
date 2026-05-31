@@ -30,7 +30,7 @@ const Sidebar = () => {
     return (
         <aside className="sidebar">
             <div className="sidebar-logo">
-                <div className="sidebar-logo-icon">🎓</div>
+                <div className="sidebar-logo-icon">QL</div>
                 <div>
                     <h1>QLĐATN</h1>
                     <span>Quản lý Đồ án</span>

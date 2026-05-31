@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../api/axios';
 import Header from '../../components/Header';
@@ -6,7 +6,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { FiUsers, FiBook, FiCheckSquare, FiAward, FiHeart, FiBarChart2, FiTrendingUp, FiClock } from 'react-icons/fi';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-const COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+const COLORS = ['#2563eb', '#0ea5e9', '#059669', '#d97706', '#dc2626', '#7c3aed'];
+const PIE_SPIN_MS = 1100;
 
 const Dashboard = () => {
     const { isAdmin, isLecturer, isStudent } = useAuth();
@@ -14,6 +15,8 @@ const Dashboard = () => {
     const location = useLocation();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [pieStartAngle, setPieStartAngle] = useState(0);
+    const pieSpunForNavRef = useRef(null);
 
     // Fetch khi load và mỗi lần navigate về Dashboard
     useEffect(() => { fetchStats(); }, [location.key]);
@@ -35,6 +38,28 @@ const Dashboard = () => {
         };
     }, []);
 
+    // Mỗi lần vào Dashboard: biểu đồ tròn xoay đúng 1 vòng rồi dừng
+    useEffect(() => {
+        if (!stats?.topicsByStatus?.length) return;
+        if (pieSpunForNavRef.current === location.key) return;
+        pieSpunForNavRef.current = location.key;
+
+        setPieStartAngle(0);
+        const started = performance.now();
+        let frameId = 0;
+
+        const spinOnce = (now) => {
+            const progress = Math.min((now - started) / PIE_SPIN_MS, 1);
+            const eased = 1 - (1 - progress) ** 3;
+            setPieStartAngle(eased * 360);
+            if (progress < 1) {
+                frameId = requestAnimationFrame(spinOnce);
+            }
+        };
+
+        frameId = requestAnimationFrame(spinOnce);
+        return () => cancelAnimationFrame(frameId);
+    }, [location.key, stats?.topicsByStatus?.length]);
 
     const fetchStats = async () => {
         try {
@@ -145,10 +170,32 @@ const Dashboard = () => {
                         {stats?.topicsByStatus?.length > 0 ? (
                             <ResponsiveContainer width="100%" height={260}>
                                 <PieChart>
-                                    <Pie data={stats.topicsByStatus.map(s => ({ name: statusLabels[s.status] || s.status, value: s.count }))} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
-                                        {stats.topicsByStatus.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                                    <Pie
+                                        data={stats.topicsByStatus.map(s => ({
+                                            name: statusLabels[s.status] || s.status,
+                                            value: s.count,
+                                        }))}
+                                        cx="50%"
+                                        cy="50%"
+                                        outerRadius={90}
+                                        dataKey="value"
+                                        startAngle={pieStartAngle}
+                                        endAngle={pieStartAngle + 360}
+                                        isAnimationActive={false}
+                                        label={({ name, value }) => `${name}: ${value}`}
+                                    >
+                                        {stats.topicsByStatus.map((_, i) => (
+                                            <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                                        ))}
                                     </Pie>
-                                    <Tooltip />
+                                    <Tooltip
+                                        contentStyle={{
+                                            background: '#fff',
+                                            border: '1px solid #e2e8f0',
+                                            borderRadius: '10px',
+                                            color: '#0f172a',
+                                        }}
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                         ) : <div className="empty-state"><p>Chưa có dữ liệu</p></div>}
@@ -159,11 +206,11 @@ const Dashboard = () => {
                         {stats?.topicsByCategory?.length > 0 ? (
                             <ResponsiveContainer width="100%" height={260}>
                                 <BarChart data={stats.topicsByCategory}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(51,65,85,0.5)" />
-                                    <XAxis dataKey="category" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                                    <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                                    <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
-                                    <Bar dataKey="count" fill="#6366f1" radius={[6, 6, 0, 0]} name="Số đề tài" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                    <XAxis dataKey="category" tick={{ fill: '#64748b', fontSize: 12 }} />
+                                    <YAxis tick={{ fill: '#64748b', fontSize: 12 }} />
+                                    <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#0f172a' }} />
+                                    <Bar dataKey="count" fill="#2563eb" radius={[6, 6, 0, 0]} name="Số đề tài" />
                                 </BarChart>
                             </ResponsiveContainer>
                         ) : <div className="empty-state"><p>Chưa có dữ liệu</p></div>}
