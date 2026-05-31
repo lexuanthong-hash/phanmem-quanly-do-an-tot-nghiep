@@ -37,6 +37,7 @@ app.use('/api/progress', require('./routes/progress'));
 app.use('/api/grades', require('./routes/grades'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/messages', require('./routes/messages'));
 app.use('/api/audit-logs', require('./routes/auditLogs'));
 
 app.get('/api/health', (req, res) => {

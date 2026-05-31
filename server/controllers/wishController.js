@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { ensureConversation } = require('../utils/conversationHelper');
 
 // [SINH VIÊN] Đăng ký nguyện vọng đề tài
 // Kiểm tra: SV chưa có đề tài, chưa đăng ký đề tài này, đề tài còn chỗ, tối đa 3 NV
@@ -103,8 +104,9 @@ exports.approveWish = async (req, res) => {
 
         // 1. duyệt NV này
         await pool.execute("UPDATE wish_registrations SET status = 'approved', reviewed_by = ?, reviewed_at = NOW() WHERE id = ?", [req.user.id, wishId]);
-        // 2. tạo phân công đề tài
-        await pool.execute('INSERT INTO topic_assignments (topic_id, student_id) VALUES (?, ?)', [wish.topic_id, wish.student_id]);
+        // 2. tạo phân công đề tài + hội thoại chat
+        const [assignResult] = await pool.execute('INSERT INTO topic_assignments (topic_id, student_id) VALUES (?, ?)', [wish.topic_id, wish.student_id]);
+        await ensureConversation(assignResult.insertId);
         // 3. cập nhật trạng thái đề tài
         await pool.execute("UPDATE topics SET status = 'assigned' WHERE id = ?", [wish.topic_id]);
         // 4. TỰ ĐỘNG từ chối tất cả NV khác của SV này (vì đã có đề tài rồi)

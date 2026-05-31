@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import Header from '../../components/Header';
 import { FiBell, FiCheck } from 'react-icons/fi';
+import {
+    isNotificationUnread,
+    markNotificationReadLocally,
+    markAllNotificationsReadLocally,
+} from '../../utils/notifications';
 
 const Notifications = () => {
     const [notifications, setNotifications] = useState([]);
@@ -18,23 +23,38 @@ const Notifications = () => {
         try { const res = await api.get('/notifications'); setNotifications(res.data.data.notifications); } catch (err) { } finally { setLoading(false); }
     };
 
-    const markAsRead = async (id) => {
-        try {
-            await api.put(`/notifications/${id}/read`);
-            fetchNotifications();
-            window.dispatchEvent(new Event('notificationsRead'));
-        } catch (err) { }
+    const handleNotificationClick = async (n) => {
+        if (isNotificationUnread(n)) {
+            setNotifications(prev => markNotificationReadLocally(prev, n.id));
+
+            try {
+                await api.put(`/notifications/${n.id}/read`);
+                await fetchNotifications();
+                window.dispatchEvent(new Event('notificationsRead'));
+            } catch (err) {
+                await fetchNotifications();
+            }
+        }
+
+        if (n.type === 'message' && n.link?.startsWith('chat:')) {
+            const convId = parseInt(n.link.replace('chat:', ''), 10);
+            window.dispatchEvent(new CustomEvent('openChat', { detail: { conversationId: convId } }));
+        }
     };
 
     const markAllRead = async () => {
+        setNotifications(prev => markAllNotificationsReadLocally(prev));
+
         try {
             await api.put('/notifications/read-all');
-            fetchNotifications();
+            await fetchNotifications();
             window.dispatchEvent(new Event('notificationsRead'));
-        } catch (err) { }
+        } catch (err) {
+            await fetchNotifications();
+        }
     };
 
-    const typeIcon = { deadline: '⏰', approval: '✅', grade: '📊', system: '🔔', reminder: '📌' };
+    const typeIcon = { deadline: '⏰', approval: '✅', grade: '📊', system: '🔔', reminder: '📌', message: '💬' };
 
     const formatTime = (d) => {
         const diff = Math.floor((new Date() - new Date(d)) / 60000);
@@ -57,14 +77,14 @@ const Notifications = () => {
                     <div className="card" style={{ padding: 0 }}>
                         {notifications.length === 0 ? <div className="empty-state"><h3>Chưa có thông báo</h3></div> :
                             notifications.map(n => (
-                                <div key={n.id} className={`notification-item ${!n.is_read ? 'unread' : ''}`} onClick={() => !n.is_read && markAsRead(n.id)} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                                <div key={n.id} className={`notification-item ${isNotificationUnread(n) ? 'unread' : ''}`} onClick={() => handleNotificationClick(n)} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', cursor: 'pointer' }}>
                                     <span style={{ fontSize: 24 }}>{typeIcon[n.type] || '🔔'}</span>
                                     <div style={{ flex: 1 }}>
-                                        <h4 style={{ color: !n.is_read ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{n.title}</h4>
+                                        <h4 style={{ color: isNotificationUnread(n) ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{n.title}</h4>
                                         <p>{n.message}</p>
                                         <time>{formatTime(n.created_at)}</time>
                                     </div>
-                                    {!n.is_read && <span className="badge badge-primary" style={{ flexShrink: 0 }}>Mới</span>}
+                                    {isNotificationUnread(n) && <span className="badge badge-primary" style={{ flexShrink: 0 }}>Mới</span>}
                                 </div>
                             ))
                         }
