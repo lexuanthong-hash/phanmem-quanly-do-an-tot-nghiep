@@ -7,7 +7,7 @@ import { FiUsers, FiPlus, FiEdit2, FiTrash2, FiSearch, FiKey } from 'react-icons
 import { useLocation } from 'react-router-dom';
 
 const Users = () => {
-    const { isAdmin, isStudent, isLecturer } = useAuth();
+    const { user: currentUser, isAdmin, isStudent, isLecturer } = useAuth();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -95,6 +95,10 @@ const Users = () => {
     const pageDesc = (isAdmin && !viewOnly) ? 'Tạo, chỉnh sửa và quản lý tài khoản người dùng' : 'Xem thông tin các tài khoản trong hệ thống';
     // Ẩn quản lý nếu viewOnly hoặc không phải Admin
     const canManage = isAdmin && !viewOnly;
+    const isStudentSelfView = isStudent && !viewOnly;
+    const displayedUsers = isStudentSelfView && currentUser
+        ? users.filter(u => String(u.id) === String(currentUser.id))
+        : users;
 
     return (
         <>
@@ -110,24 +114,12 @@ const Users = () => {
                     )}
                 </div>
 
-                <div className="filter-bar">
-                    <div className="search-input"><FiSearch /><input className="form-input" placeholder="Tìm kiếm..." value={search} onChange={e => { setSearch(e.target.value); setPagination(p => ({ ...p, page: 1 })); }} /></div>
-                    {(isAdmin || isLecturer) && (
-                        <select className="form-select" value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}>
-                            {canManage && <option value="">Tất cả vai trò</option>}
-                            {canManage && <option value="admin">Admin</option>}
-                            <option value="lecturer">Giảng viên</option>
-                            <option value="student">Sinh viên</option>
-                        </select>
-                    )}
-                </div>
-
-                {loading ? <div className="loading"><div className="spinner"></div></div> : (
+                {isStudentSelfView ? (
                     <div className="table-container">
                         <table>
-                            <thead><tr><th>STT</th><th>Username</th><th>Họ tên</th><th>Email</th><th>Vai trò</th><th>Mã SV/GV</th><th>Khoa</th><th>Trạng thái</th>{canManage && <th>Thao tác</th>}</tr></thead>
+                            <thead><tr><th>STT</th><th>Username</th><th>Họ tên</th><th>Email</th><th>Vai trò</th><th>Mã SV/GV</th><th>Khoa</th><th>Trạng thái</th></tr></thead>
                             <tbody>
-                                {users.map((u, i) => (
+                                {displayedUsers.map((u, i) => (
                                     <tr key={u.id}>
                                         <td>{i + 1}</td>
                                         <td style={{ fontWeight: 600 }}>{u.username}</td>
@@ -137,20 +129,56 @@ const Users = () => {
                                         <td>{u.student_code || u.lecturer_code || '-'}</td>
                                         <td>{u.department || '-'}</td>
                                         <td>{u.is_active ? <span className="badge badge-success">Active</span> : <span className="badge badge-danger">Inactive</span>}</td>
-                                        {canManage && (
-                                            <td>
-                                                <div className="btn-group">
-                                                    <button className="btn btn-sm btn-outline" onClick={() => handleEdit(u)} title="Sửa"><FiEdit2 /></button>
-                                                    <button className="btn btn-sm btn-warning" onClick={() => handleResetPw(u.id)} title="Reset password"><FiKey /></button>
-                                                    <button className="btn btn-sm btn-danger" onClick={() => handleDelete(u.id)} title="Vô hiệu hóa"><FiTrash2 /></button>
-                                                </div>
-                                            </td>
-                                        )}
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
+                ) : (
+                    <>
+                        <div className="filter-bar">
+                            <div className="search-input"><FiSearch /><input className="form-input" placeholder="Tìm kiếm..." value={search} onChange={e => { setSearch(e.target.value); setPagination(p => ({ ...p, page: 1 })); }} /></div>
+                            {(isAdmin || isLecturer) && (
+                                <select className="form-select" value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}>
+                                    {canManage && <option value="">Tất cả vai trò</option>}
+                                    {canManage && <option value="admin">Admin</option>}
+                                    <option value="lecturer">Giảng viên</option>
+                                    <option value="student">Sinh viên</option>
+                                </select>
+                            )}
+                        </div>
+
+                        {loading ? <div className="loading"><div className="spinner"></div></div> : (
+                            <div className="table-container">
+                                <table>
+                                    <thead><tr><th>STT</th><th>Username</th><th>Họ tên</th><th>Email</th><th>Vai trò</th><th>Mã SV/GV</th><th>Khoa</th><th>Trạng thái</th>{canManage && <th>Thao tác</th>}</tr></thead>
+                                    <tbody>
+                                        {users.map((u, i) => (
+                                            <tr key={u.id}>
+                                                <td>{i + 1}</td>
+                                                <td style={{ fontWeight: 600 }}>{u.username}</td>
+                                                <td style={{ color: 'var(--text-primary)' }}>{u.full_name}</td>
+                                                <td style={{ fontSize: 12 }}>{u.email}</td>
+                                                <td>{roleBadge(u.role)}</td>
+                                                <td>{u.student_code || u.lecturer_code || '-'}</td>
+                                                <td>{u.department || '-'}</td>
+                                                <td>{u.is_active ? <span className="badge badge-success">Active</span> : <span className="badge badge-danger">Inactive</span>}</td>
+                                                {canManage && (
+                                                    <td>
+                                                        <div className="btn-group">
+                                                            <button className="btn btn-sm btn-outline" onClick={() => handleEdit(u)} title="Sửa"><FiEdit2 /></button>
+                                                            <button className="btn btn-sm btn-warning" onClick={() => handleResetPw(u.id)} title="Reset password"><FiKey /></button>
+                                                            <button className="btn btn-sm btn-danger" onClick={() => handleDelete(u.id)} title="Vô hiệu hóa"><FiTrash2 /></button>
+                                                        </div>
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </>
                 )}
 
                 {pagination.totalPages > 1 && (
