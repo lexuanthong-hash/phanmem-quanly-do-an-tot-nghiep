@@ -95,7 +95,7 @@ const Users = () => {
     const pageDesc = (isAdmin && !viewOnly) ? 'Tạo, chỉnh sửa và quản lý tài khoản người dùng' : 'Xem thông tin các tài khoản trong hệ thống';
     // Ẩn quản lý nếu viewOnly hoặc không phải Admin
     const canManage = isAdmin && !viewOnly;
-    const isStudentSelfView = isStudent && !viewOnly;
+    const isStudentSelfView = isStudent && roleFilter === 'student';
     const displayedUsers = isStudentSelfView && currentUser
         ? users.filter(u => String(u.id) === String(currentUser.id))
         : users;

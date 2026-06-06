@@ -107,7 +107,7 @@ const Dashboard = () => {
                 <div className="stat-grid">
                     <div className="stat-card hover-scale" style={{ cursor: 'pointer' }} onClick={() => navigate('/users', { state: { role: 'student', viewOnly: true } })}>
                         <div className="stat-icon primary"><FiUsers /></div>
-                        <div><div className="stat-value">{o.totalStudents || 0}</div><div className="stat-label">Sinh viên</div></div>
+                        <div><div className="stat-value">{isStudent ? 1 : (o.totalStudents || 0)}</div><div className="stat-label">Sinh viên</div></div>
                     </div>
                     <div className="stat-card hover-scale" style={{ cursor: 'pointer' }} onClick={() => navigate('/topics')}>
                         <div className="stat-icon info"><FiBook /></div>
@@ -158,10 +158,12 @@ const Dashboard = () => {
                             <div><div className="stat-value">{stats?.avgScore || 0}</div><div className="stat-label">Điểm TB</div></div>
                         </div>
                     )}
-                    <div className="stat-card hover-scale" style={{ cursor: 'pointer' }} onClick={() => navigate('/users', { state: { role: 'lecturer', viewOnly: true } })}>
-                        <div className="stat-icon primary"><FiTrendingUp /></div>
-                        <div><div className="stat-value">{o.totalLecturers || 0}</div><div className="stat-label">Giảng viên</div></div>
-                    </div>
+                    {!isStudent && (
+                        <div className="stat-card hover-scale" style={{ cursor: 'pointer' }} onClick={() => navigate('/users', { state: { role: 'lecturer', viewOnly: true } })}>
+                            <div className="stat-icon primary"><FiTrendingUp /></div>
+                            <div><div className="stat-value">{o.totalLecturers || 0}</div><div className="stat-label">Giảng viên</div></div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="chart-grid">
