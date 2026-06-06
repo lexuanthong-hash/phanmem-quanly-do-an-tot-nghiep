@@ -3,7 +3,14 @@ import api from '../../api/axios';
 import Header from '../../components/Header';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
-import { FiAward, FiSave } from 'react-icons/fi';
+import { FiAward, FiSave, FiEdit2, FiPlus } from 'react-icons/fi';
+
+// Hiển thị số gọn: 10 thay vì 10.00, 2 thay vì 2.00
+const formatRubricNumber = (value) => {
+    const n = parseFloat(value);
+    if (Number.isNaN(n)) return value;
+    return Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2)));
+};
 
 const Grades = () => {
     const { isStudent, isAdmin, isLecturer } = useAuth();
@@ -17,11 +24,76 @@ const Grades = () => {
     const [loading, setLoading] = useState(true);
 
     const [notGradedYet, setNotGradedYet] = useState(false);
+    const [showCriteriaModal, setShowCriteriaModal] = useState(false);
+    const [editingCriteria, setEditingCriteria] = useState(null);
+    const [criteriaForm, setCriteriaForm] = useState({
+        name: '',
+        description: '',
+        max_score: 10,
+        weight: 1,
+        category: 'report',
+        order_index: 0,
+        is_active: 1,
+    });
 
     useEffect(() => { fetchCriteria(); fetchAssignments(); }, []);
 
     const fetchCriteria = async () => {
         try { const res = await api.get('/grades/criteria'); setCriteria(res.data.data); } catch (err) { } finally { setLoading(false); }
+    };
+
+    const openCriteriaModal = (criteriaItem = null) => {
+        if (criteriaItem) {
+            setEditingCriteria(criteriaItem);
+            setCriteriaForm({
+                name: criteriaItem.name || '',
+                description: criteriaItem.description || '',
+                max_score: criteriaItem.max_score || 10,
+                weight: criteriaItem.weight || 1,
+                category: criteriaItem.category || 'report',
+                order_index: criteriaItem.order_index || 0,
+                is_active: criteriaItem.is_active ? 1 : 0,
+            });
+        } else {
+            setEditingCriteria(null);
+            setCriteriaForm({
+                name: '',
+                description: '',
+                max_score: 10,
+                weight: 1,
+                category: 'report',
+                order_index: criteria.length,
+                is_active: 1,
+            });
+        }
+        setShowCriteriaModal(true);
+    };
+
+    const handleSaveCriteria = async (e) => {
+        e.preventDefault();
+        try {
+            const payload = {
+                ...criteriaForm,
+                max_score: parseFloat(criteriaForm.max_score) || 10,
+                weight: parseFloat(criteriaForm.weight) || 1,
+                order_index: parseInt(criteriaForm.order_index, 10) || 0,
+                is_active: criteriaForm.is_active ? 1 : 0,
+            };
+
+            if (editingCriteria) {
+                await api.put(`/grades/criteria/${editingCriteria.id}`, payload);
+                toast.success('Cập nhật tiêu chí thành công!');
+            } else {
+                await api.post('/grades/criteria', payload);
+                toast.success('Tạo tiêu chí thành công!');
+            }
+
+            setShowCriteriaModal(false);
+            setEditingCriteria(null);
+            fetchCriteria();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Lỗi lưu tiêu chí');
+        }
     };
 
     const fetchAssignments = async () => {
@@ -109,6 +181,65 @@ const Grades = () => {
                     <div><h1><FiAward style={{ verticalAlign: 'middle' }} /> {isStudent ? 'Bảng điểm' : 'Chấm điểm Rubric'}</h1><p>{isStudent ? 'Xem điểm đồ án tốt nghiệp' : 'Chấm điểm theo tiêu chí '}</p></div>
                 </div>
 
+                {showCriteriaModal && isAdmin && (
+                    <div className="modal-overlay" onClick={() => setShowCriteriaModal(false)}>
+                        <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
+                            <div className="modal-header">
+                                <h2>{editingCriteria ? 'Sửa tiêu chí' : 'Thêm tiêu chí'}</h2>
+                                <button className="modal-close" onClick={() => setShowCriteriaModal(false)}>✕</button>
+                            </div>
+                            <form onSubmit={handleSaveCriteria}>
+                                <div className="modal-body">
+                                    <div className="form-group">
+                                        <label className="form-label">Tên tiêu chí *</label>
+                                        <input className="form-input" value={criteriaForm.name} onChange={e => setCriteriaForm({ ...criteriaForm, name: e.target.value })} required />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Mô tả</label>
+                                        <textarea className="form-textarea" value={criteriaForm.description} onChange={e => setCriteriaForm({ ...criteriaForm, description: e.target.value })} />
+                                    </div>
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label className="form-label">Điểm tối đa</label>
+                                            <input type="number" className="form-input" value={criteriaForm.max_score} onChange={e => setCriteriaForm({ ...criteriaForm, max_score: e.target.value })} min="0" step="0.5" />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label">Trọng số</label>
+                                            <input type="number" className="form-input" value={criteriaForm.weight} onChange={e => setCriteriaForm({ ...criteriaForm, weight: e.target.value })} min="0" step="0.1" />
+                                        </div>
+                                    </div>
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label className="form-label">Nhóm</label>
+                                            <select className="form-select" value={criteriaForm.category} onChange={e => setCriteriaForm({ ...criteriaForm, category: e.target.value })}>
+                                                <option value="report">Báo cáo</option>
+                                                <option value="product">Sản phẩm</option>
+                                                <option value="presentation">Thuyết trình</option>
+                                                <option value="defense">Phản biện</option>
+                                            </select>
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label">Thứ tự hiển thị</label>
+                                            <input type="number" className="form-input" value={criteriaForm.order_index} onChange={e => setCriteriaForm({ ...criteriaForm, order_index: e.target.value })} min="0" step="1" />
+                                        </div>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Trạng thái</label>
+                                        <select className="form-select" value={criteriaForm.is_active ? 1 : 0} onChange={e => setCriteriaForm({ ...criteriaForm, is_active: parseInt(e.target.value) })}>
+                                            <option value={1}>Đang hoạt động</option>
+                                            <option value={0}>Ẩn</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="modal-footer">
+                                    <button type="button" className="btn btn-outline" onClick={() => setShowCriteriaModal(false)}>Hủy</button>
+                                    <button type="submit" className="btn btn-primary">{editingCriteria ? 'Cập nhật' : 'Tạo mới'}</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
                 {/* Chỉ Admin/Giảng viên mới thấy dropdown chọn sinh viên */}
                 {!isStudent && (
                     <div className="card" style={{ marginBottom: 20 }}>
@@ -162,18 +293,28 @@ const Grades = () => {
                         )}
 
                         <div className="card rubric-table">
-                            <div className="card-header"><h3 className="card-title">Bảng chấm điểm chi tiết</h3>{isLecturer && <button className="btn btn-primary" onClick={handleSave}><FiSave /> Lưu điểm</button>}</div>
+                            <div className="card-header">
+                                <h3 className="card-title">Bảng chấm điểm chi tiết</h3>
+                                <div className="btn-group">
+                                    {isAdmin && (
+                                        <button className="btn btn-primary" onClick={() => openCriteriaModal()}>
+                                            <FiPlus /> Thêm tiêu chí
+                                        </button>
+                                    )}
+                                    {isLecturer && <button className="btn btn-primary" onClick={handleSave}><FiSave /> Lưu điểm</button>}
+                                </div>
+                            </div>
                             <div className="table-container">
                                 <table>
-                                    <thead><tr><th>STT</th><th>Tiêu chí</th><th>Nhóm</th><th>Điểm tối đa</th><th>Trọng số</th><th>Điểm</th><th>Nhận xét</th></tr></thead>
+                                    <thead><tr><th>STT</th><th>Tiêu chí</th><th>Nhóm</th><th>Điểm tối đa</th><th>Trọng số</th><th>Điểm</th><th>Nhận xét</th>{isAdmin && <th>Thao tác</th>}</tr></thead>
                                     <tbody>
                                         {criteria.map((cr, i) => (
                                             <tr key={cr.id}>
                                                 <td>{i + 1}</td>
                                                 <td><div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{cr.name}</div><div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{cr.description}</div></td>
                                                 <td>{categoryLabel[cr.category] || cr.category}</td>
-                                                <td>{cr.max_score}</td>
-                                                <td>x{cr.weight}</td>
+                                                <td>{formatRubricNumber(cr.max_score)}</td>
+                                                <td>x{formatRubricNumber(cr.weight)}</td>
                                                 <td>
                                                     {isLecturer ? (
                                                         <input type="number" className="form-input" min="0" max={cr.max_score} step="0.5" value={grades[cr.id] || ''} onChange={e => setGrades({ ...grades, [cr.id]: e.target.value })} style={{ width: 70, textAlign: 'center' }} />
@@ -188,6 +329,11 @@ const Grades = () => {
                                                         <span style={{ fontSize: 12 }}>{comments[cr.id] || '-'}</span>
                                                     )}
                                                 </td>
+                                                {isAdmin && (
+                                                    <td>
+                                                        <button className="btn btn-sm btn-outline" onClick={() => openCriteriaModal(cr)}>Sửa</button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))}
                                     </tbody>
@@ -201,6 +347,65 @@ const Grades = () => {
                     </>
                 )}
             </div>
+
+            {showCriteriaModal && isAdmin && (
+                <div className="modal-overlay" onClick={() => setShowCriteriaModal(false)}>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
+                        <div className="modal-header">
+                            <h2>{editingCriteria ? 'Sửa tiêu chí' : 'Thêm tiêu chí'}</h2>
+                            <button className="modal-close" onClick={() => setShowCriteriaModal(false)}>✕</button>
+                        </div>
+                        <form onSubmit={handleSaveCriteria}>
+                            <div className="modal-body">
+                                <div className="form-group">
+                                    <label className="form-label">Tên tiêu chí *</label>
+                                    <input className="form-input" value={criteriaForm.name} onChange={e => setCriteriaForm({ ...criteriaForm, name: e.target.value })} required />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Mô tả</label>
+                                    <textarea className="form-textarea" value={criteriaForm.description} onChange={e => setCriteriaForm({ ...criteriaForm, description: e.target.value })} />
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label className="form-label">Điểm tối đa</label>
+                                        <input type="number" className="form-input" value={criteriaForm.max_score} onChange={e => setCriteriaForm({ ...criteriaForm, max_score: e.target.value })} min="0" step="0.5" />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Trọng số</label>
+                                        <input type="number" className="form-input" value={criteriaForm.weight} onChange={e => setCriteriaForm({ ...criteriaForm, weight: e.target.value })} min="0" step="0.1" />
+                                    </div>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label className="form-label">Nhóm</label>
+                                        <select className="form-select" value={criteriaForm.category} onChange={e => setCriteriaForm({ ...criteriaForm, category: e.target.value })}>
+                                            <option value="report">Báo cáo</option>
+                                            <option value="product">Sản phẩm</option>
+                                            <option value="presentation">Thuyết trình</option>
+                                            <option value="defense">Phản biện</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Thứ tự hiển thị</label>
+                                        <input type="number" className="form-input" value={criteriaForm.order_index} onChange={e => setCriteriaForm({ ...criteriaForm, order_index: e.target.value })} min="0" step="1" />
+                                    </div>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Trạng thái</label>
+                                    <select className="form-select" value={criteriaForm.is_active ? 1 : 0} onChange={e => setCriteriaForm({ ...criteriaForm, is_active: parseInt(e.target.value) })}>
+                                        <option value={1}>Đang hoạt động</option>
+                                        <option value={0}>Ẩn</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-outline" onClick={() => setShowCriteriaModal(false)}>Hủy</button>
+                                <button type="submit" className="btn btn-primary">{editingCriteria ? 'Cập nhật' : 'Tạo mới'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </>
     );
 };

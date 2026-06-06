@@ -12,6 +12,10 @@ router.get('/criteria', ctrl.getCriteria);
 // POST /api/grades/criteria — Admin tạo tiêu chí chấm điểm mới (tên, trọng số, điểm tối đa)
 router.post('/criteria', authorize('admin'), auditLog('CREATE', 'rubric_criteria'), ctrl.createCriteria);
 
+// PUT /api/grades/criteria/:id — Admin chỉnh sửa tiêu chí chấm điểm
+router.put('/criteria/:id', authorize('admin'), auditLog('UPDATE', 'rubric_criteria'), ctrl.updateCriteria);
+
+
 // GET /api/grades/assignments — Lấy danh sách phân công đề tài (để biết SV nào đang làm đề tài nào)
 router.get('/assignments', ctrl.getAssignments);
 

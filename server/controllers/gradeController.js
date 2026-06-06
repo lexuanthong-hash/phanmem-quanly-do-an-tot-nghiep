@@ -24,6 +24,36 @@ exports.createCriteria = async (req, res) => {
     }
 };
 
+// [ADMIN] Cập nhật tiêu chí chấm điểm
+exports.updateCriteria = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, description, max_score, weight, category, order_index, is_active } = req.body;
+
+        await pool.execute(
+            `UPDATE rubric_criteria
+             SET name = ?, description = ?, max_score = ?, weight = ?, category = ?, order_index = ?, is_active = ?
+             WHERE id = ?`,
+            [
+                name,
+                description || null,
+                max_score || 10,
+                weight || 1.0,
+                category || 'report',
+                order_index || 0,
+                is_active === 0 || is_active === '0' ? 0 : 1,
+                id
+            ]
+        );
+
+        res.json({ success: true, message: 'Cập nhật tiêu chí thành công!' });
+    } catch (error) {
+        console.error('Update criteria error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi hệ thống.' });
+    }
+};
+
+
 // [GIẢNG VIÊN] Chấm điểm sinh viên theo từng tiêu chí rubric
 // Lưu nhiều tiêu chí một lúc (mảng grades[])
 // ON DUPLICATE KEY UPDATE: nếu đã chấm rồi thì cập nhật lại
