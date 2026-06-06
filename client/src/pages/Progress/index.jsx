@@ -52,6 +52,11 @@ const Progress = () => {
         try { const res = await api.get('/milestones'); setMilestones(res.data.data); } catch (err) { }
     };
 
+    const getStudentMilestones = () => {
+        if (!myAssignment) return [];
+        return milestones.filter(m => String(m.topic_id || '') === String(myAssignment.topic_id || ''));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -185,7 +190,7 @@ const Progress = () => {
                                 <div className="form-group"><label className="form-label">Mốc tiến độ *</label>
                                     <select className="form-select" value={submitForm.milestone_id} onChange={e => setSubmitForm({ ...submitForm, milestone_id: e.target.value })} required>
                                         <option value="">Chọn mốc...</option>
-                                        {milestones.map(m => <option key={m.id} value={m.id}>{m.title} - Hạn: {new Date(m.deadline).toLocaleDateString('vi-VN')}</option>)}
+                                        {getStudentMilestones().map(m => <option key={m.id} value={m.id}>{m.title} - Hạn: {new Date(m.deadline).toLocaleDateString('vi-VN')}</option>)}
                                     </select>
                                 </div>
                                 <div className="form-group"><label className="form-label">Nội dung báo cáo</label><textarea className="form-textarea" value={submitForm.content} onChange={e => setSubmitForm({ ...submitForm, content: e.target.value })} placeholder="Mô tả tiến độ thực hiện..." /></div>
