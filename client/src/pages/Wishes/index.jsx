@@ -126,6 +126,12 @@ const Wishes = () => {
         return <span className={`badge ${c}`}>{l}</span>;
     };
 
+    const getTopicDisplayStatus = (topic) => {
+        if (topic.status !== 'approved') return { text: 'Chờ duyệt', color: 'var(--warning)' };
+        if (topic.current_students >= topic.max_students) return { text: 'Đã đủ sinh viên', color: 'var(--danger)' };
+        return { text: 'Có thể đăng ký', color: 'var(--success)' };
+    };
+
     return (
         <>
             <Header title={isStudent ? 'Đăng ký nguyện vọng' : 'Duyệt nguyện vọng'} />
@@ -199,9 +205,15 @@ const Wishes = () => {
                                             <td style={{ maxWidth: '250px' }}>
                                                 {w.topic_title}
                                                 <div style={{ fontSize: '12px', marginTop: '4px' }}>
-                                                    <span style={{ color: w.current_students >= w.max_students ? 'var(--danger)' : 'var(--success)' }}>
-                                                        (Đã đăng ký: {w.current_students}/{w.max_students} SV)
-                                                    </span>
+                                                    {(() => {
+                                                        const st = getTopicDisplayStatus(w);
+                                                        return <div style={{ color: st.color, fontWeight: 600 }}>({st.text})</div>;
+                                                    })()}
+                                                    {w.status === 'approved' && (
+                                                        <span style={{ color: w.current_students >= w.max_students ? 'var(--danger)' : 'var(--success)' }}>
+                                                            (Đã đăng ký: {w.current_students}/{w.max_students} SV)
+                                                        </span>
+                                                    )}
                                                     {w.assigned_students && <div style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>SV đang làm: {w.assigned_students}</div>}
                                                     {w.wishing_students && <div style={{ color: 'var(--warning)', marginTop: '2px' }}>SV đang chờ: {w.wishing_students}</div>}
                                                 </div>
@@ -240,15 +252,22 @@ const Wishes = () => {
                                 <div className="form-group"><label className="form-label">Chọn đề tài *</label>
                                     <select className="form-select" value={form.topic_id} onChange={e => setForm({ ...form, topic_id: e.target.value })} required>
                                         <option value="">-- Chọn đề tài --</option>
-                                        {topics.map(t => (
-                                            <option
-                                                key={t.id}
-                                                value={t.id}
-                                                disabled={t.current_students >= t.max_students}
-                                            >
-                                                {t.title} ({t.lecturer_name} - Tối đa {t.max_students} SV) {t.current_students >= t.max_students ? '- Đã đủ sinh viên' : ''} {t.wishing_students ? `[Đã ĐK: ${t.wishing_students}]` : ''}
-                                            </option>
-                                        ))}
+                                        {topics.map(t => {
+                                            const isApproved = t.status === 'approved';
+                                            const isFull = isApproved && t.current_students >= t.max_students;
+                                            const optionColor = !isApproved ? 'var(--warning)' : isFull ? 'var(--danger)' : 'var(--success)';
+                                            const optionSuffix = !isApproved ? '- Chờ duyệt' : isFull ? '- Đã đủ sinh viên' : '- Có thể đăng ký';
+                                            return (
+                                                <option
+                                                    key={t.id}
+                                                    value={t.id}
+                                                    disabled={isFull}
+                                                    style={{ color: optionColor, fontWeight: 600 }}
+                                                >
+                                                    {t.title} ({t.lecturer_name} - Tối đa {t.max_students} SV) {optionSuffix} {t.wishing_students ? `[Đã ĐK: ${t.wishing_students}]` : ''}
+                                                </option>
+                                            );
+                                        })}
                                     </select>
                                 </div>
                                 <div className="form-group"><label className="form-label">Mức ưu tiên</label>
